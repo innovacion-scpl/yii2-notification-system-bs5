@@ -60,7 +60,7 @@ class NotificationSystemModule extends \yii\base\Module
      * @return bool Returns TRUE on success, FALSE on failure
      * @throws Exception
      */
-    public static function notify($notification, $key, $user_id, $key_id = null, $type = Notification::TYPE_DEFAULT)
+    public static function notify($notification, $key, $user_id, $created_by, $key_id = null, $type = Notification::TYPE_DEFAULT)
     {
         if (!in_array($key, $notification::$keys)) {
             throw new Exception("Not a registered notification key: $key");
@@ -79,6 +79,7 @@ class NotificationSystemModule extends \yii\base\Module
                 'user_id' => $user_id,
                 'key_id' => (string)$key_id,
                 'created_at' => new Expression('NOW()'),
+                'created_by' => $created_by
             ]);
             return $instance->save();
         }

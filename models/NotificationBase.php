@@ -18,6 +18,7 @@ use cbtech\notification_system\NotificationSystemModule;
     * @property integer $flashed
     * @property string $created_at
     * @property string $updated_at
+    * @property integer $created_by
     *
             * @property User $user
     */
@@ -37,8 +38,8 @@ abstract class NotificationBase extends \yii\db\ActiveRecord
 	public function rules()
 	{
 	        return [
-	            [['user_id', 'key', 'type'], 'required'],
-	            [['user_id', 'key_id', 'read', 'flashed'], 'integer'],
+	            [['user_id', 'created_by', 'key', 'type'], 'required'],
+	            [['user_id', 'created_by', 'key_id', 'read', 'flashed'], 'integer'],
 	            [['created_at', 'updated_at'], 'safe'],
 	            [['key', 'type'], 'string', 'max' => 255],
 // 	            [['user_id'], 'exist', 'skipOnError' => true, 'targetClass' => User::className(), 'targetAttribute' => ['user_id' => 'id']],
@@ -59,7 +60,8 @@ abstract class NotificationBase extends \yii\db\ActiveRecord
 		    'read' => 'Read',
 		    'flashed' => 'Flashed',
 		    'created_at' => 'Created At',
-		    'updated_at' => 'Updated At',
+            'updated_at' => 'Updated At',
+            'created_by' => 'Created By'
 		];
 	}
 
@@ -124,10 +126,10 @@ abstract class NotificationBase extends \yii\db\ActiveRecord
      * @return bool Returns TRUE on success, FALSE on failure
      * @throws \Exception
      */
-    public static function notify($key, $user_id, $key_id = null, $type = self::TYPE_DEFAULT)
+    public static function notify($key, $user_id, $created_by, $key_id = null, $type = self::TYPE_DEFAULT)
     {
         $class = self::className();
-        return NotificationSystemModule::notify(new $class(), $key, $user_id, $key_id, $type);
+        return NotificationSystemModule::notify(new $class(), $key, $user_id, $created_by, $key_id, $type);
     }
     /**
      * Creates a warning notification
