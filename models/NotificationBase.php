@@ -139,9 +139,9 @@ abstract class NotificationBase extends \yii\db\ActiveRecord
      * @param string $key_id The notification key id
      * @return bool Returns TRUE on success, FALSE on failure
      */
-    public static function warning($key, $user_id, $key_id = null)
+    public static function warning($key, $user_id, $created_by, $key_id = null)
     {
-        return static::notify($key, $user_id, $key_id, self::TYPE_WARNING);
+        return static::notify($key, $user_id, $created_by, $key_id, self::TYPE_WARNING);
     }
     /**
      * Creates an error notification
@@ -151,9 +151,9 @@ abstract class NotificationBase extends \yii\db\ActiveRecord
      * @param string $key_id The notification key id
      * @return bool Returns TRUE on success, FALSE on failure
      */
-    public static function error($key, $user_id, $key_id = null)
+    public static function error($key, $user_id, $created_by, $key_id = null)
     {
-        return static::notify($key, $user_id, $key_id, self::TYPE_ERROR);
+        return static::notify($key, $user_id, $created_by, $key_id, self::TYPE_ERROR);
     }
     /**
      * Creates a success notification
@@ -163,8 +163,8 @@ abstract class NotificationBase extends \yii\db\ActiveRecord
      * @param string $key_id The notification key id
      * @return bool Returns TRUE on success, FALSE on failure
      */
-    public static function success($key, $user_id, $key_id = null)
+    public static function success($key, $user_id, $created_by, $key_id = null)
     {
-        return static::notify($key, $user_id, $key_id, self::TYPE_SUCCESS);
+        return static::notify($key, $user_id, $created_by, $key_id, self::TYPE_SUCCESS);
     }
 }
