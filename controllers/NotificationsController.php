@@ -4,14 +4,20 @@ namespace cbtech\notification_system\controllers;
 
 use Yii;
 use yii\helpers\Url;
+use yii\helpers\Json;
+use yii\web\Response;
 use yii\web\Controller;
 use yii\web\HttpException;
-use yii\web\Response;
-use cbtech\notification_system\models\Notification;
 use common\models\Notificacion;
+use cbtech\notification_system\models\Notification;
 
 class NotificationsController extends Controller
 {
+
+    /**
+     * 
+     */
+
     /**
      * @var integer The current user id
      */
@@ -28,7 +34,6 @@ class NotificationsController extends Controller
         Yii::$app->response->format = Response::FORMAT_JSON;
         $this->user_id = $this->module->userId;
         $this->notificationClass = $this->module->notificationClass;
-// 		$this->notificationClass = Notification::className();
         parent::init();
     }
     /**
@@ -37,28 +42,43 @@ class NotificationsController extends Controller
      * @param int $seen Whether to show already seen notifications
      * @return array
      */
-    public function actionPoll($all = 0)
+    public function actionPollSection($claves, $section=1, $all = 0)
     {
-//     		\Yii::error($this->notificationClass);
-//         $read = $read ? 1 : 0;
-//         \Yii::error($read);
         /** @var Notification $class */
         $class = $this->notificationClass;
         $models = $class::find()->where(['user_id' => $this->user_id]);
-		if($all == 0){
-        	$models->andWhere(['or', ["read"=>0], ['flashed'=>0]]);			
-		}else{
-			$models->andWhere(['or', ["read"=>0],["read"=>1], ['flashed'=>0]]);	
-		}
+        $claves = Json::decode($claves);
+        $models->andWhere(['or', ["read"=>0], ['flashed'=>0]])
+                ->andWhere(['IN', 'key', array_values($claves)]);
 		$models = $models->orderBy('read, created_at DESC')
 						 ->all();
 		
         $results = $this->convertModelsToArray($models);
-//         \Yii::error(print_r($models,true));
-        
-//         \Yii::error(print_r($results,true));
         return $results;
     }
+
+//     public function actionPoll($all = 0)
+//     {
+// //     		\Yii::error($this->notificationClass);
+// //         $read = $read ? 1 : 0;
+// //         \Yii::error($read);
+//         /** @var Notification $class */
+//         $class = $this->notificationClass;
+//         $models = $class::find()->where(['user_id' => $this->user_id]);
+// 		if($all == 0){
+//         	$models->andWhere(['or', ["read"=>0], ['flashed'=>0]]);			
+// 		}else{
+// 			$models->andWhere(['or', ["read"=>0],["read"=>1], ['flashed'=>0]]);	
+// 		}
+// 		$models = $models->orderBy('read, created_at DESC')
+// 						 ->all();
+		
+//         $results = $this->convertModelsToArray($models);
+// //         \Yii::error(print_r($models,true));
+        
+// //         \Yii::error(print_r($results,true));
+//         return $results;
+//     }
     /**
      * Marks a notification as read and redirects the user to the final route
      *
@@ -144,7 +164,8 @@ class NotificationsController extends Controller
     /** Retorna el listado de notificaciones  */
     public function actionVerNotificaciones()
     {
-        $modelos = Notificacion::find()
+        $class = $this->notificationClass;
+        $modelos = $class::find()
                             ->where(['key' => 'nota_cerrada'])
                             ->andWhere(['read' => 0]) 
                             ->andWhere(['user_id' => $this->user_id])
@@ -197,7 +218,7 @@ class NotificationsController extends Controller
                 'type' => $model->type,
                 'title' => $model->getTitle(),
                 'body' => $model->getBody(),
-            		'footer' => $model->getFooter(),
+                'footer' => $model->getFooter(),
                 'url' => $model->getRoute(),
                 'key' => $model->key,
            	 	'key_id' => $model->key_id,

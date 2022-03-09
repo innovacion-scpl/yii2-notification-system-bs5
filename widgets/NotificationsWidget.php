@@ -18,6 +18,11 @@ class NotificationsWidget extends Widget
      * @var string The URL for the poll() for new notifications controller action
      */
 	public $pollUrl = '/notifications/notifications/poll';
+
+    /**
+     * @var string The URL for the poll() for new notifications controller action
+     */
+	public $pollSectionUrl = '/notifications/notifications/poll-section';
 	
 	/**
      * @var string The URL for the controller action that marks an individual notification as read
@@ -122,7 +127,23 @@ class NotificationsWidget extends Widget
      * @var string The jQuery selector for the Alertas button
      */
     public $viewAlertasSelector = null;
-    
+
+    /**
+     * @var boolean Define si se debe mostrar el listado de notificaciones divido
+     * en dos secciones diferentes. 
+     */
+    public $dividirEnSecciones = false;
+
+    /**
+     * @var array El listado de claves a mostrar en la sección "Notificaciones"
+     */
+    public $clavesSeccionNotificaciones = [];
+
+    /**
+     * @var array El listado de claves a mostrar en la sección "Alertas"
+     */
+    public $clavesSeccionAlertas = [];
+
     /**
      * @var string The jQuery selector for the Notifications header view
      */
@@ -168,26 +189,6 @@ class NotificationsWidget extends Widget
     {
         $view = $this->getView();
         NotificationAsset::register($view);
-        // Register the theme assets
-//         if (!is_null($this->theme)) {
-//             if (!in_array($this->theme, self::$_builtinThemes)) {
-//                 throw new Exception("Unknown theme: " . $this->theme, 501);
-//             }
-//             foreach (['js' => 'registerJsFile', 'css' => 'registerCssFile'] as $type => $method) {
-//                 $filename = NotificationAsset::getFilename($this->theme, $type);
-//                 if ($filename) {
-//                     $view->$method($asset->baseUrl . '/' . $filename, [
-//                         'depends' => NotificationAsset::className()
-//                     ]);
-//                 }
-//             }
-//         }
-//         // Register timeago i18n file
-//         if ($filename = NotificationAsset::getTimeAgoI18n($this->timeAgoLocale)) {
-//             $view->registerJsFile($asset->baseUrl . '/' . $filename, [
-//                 'depends' => NotificationAsset::className()
-//             ]);
-//         }
 			
         //Set basic params
         $params = [
@@ -196,10 +197,14 @@ class NotificationsWidget extends Widget
             'options' => $this->clientOptions,
             'pollInterval' => Html::encode($this->pollInterval),
             'counters' => $this->counters,
+            'dividirEnSecciones' => $this->dividirEnSecciones,
+            'clavesSeccionNotificaciones' => $this->clavesSeccionNotificaciones,
+            'clavesSeccionAlertas' => $this->clavesSeccionAlertas
         ];
 
         //Set the URLs
 		$params['pollUrl'] = $this->pollUrl;
+        $params['pollSectionUrl'] = $this->pollSectionUrl;
         $params['markAsReadUrl'] = $this->markAsReadUrl;
         $params['markAsUnreadUrl'] = $this->markAsUnreadUrl;
 		$params['flashUrl'] = $this->flashUrl;
@@ -247,9 +252,25 @@ class NotificationsWidget extends Widget
         
         if($this->headerSelector){
         		$params["headerSelector"] = $this->headerSelector;
-        		if($this->headerTemplate){
-        			$params["headerTemplate"] = $this->headerTemplate;
-        		}
+        		if(!$this->dividirEnSecciones){
+        			$params["headerTemplate"] = '<div class="col-xs-12">'. 
+                                                    '<div class="pull-left" style="font-size:14px;font-weight:bold;margin-left:10px;">{title}</div>' . 
+                                                    '<button id="{readAllId}" class="btn btn-xs btn-link pull-right" style="color:#3399ff;" data-keepOpenOnClick>Leídas</button>' . 
+                                                    '<button id="{unreadAllId}" class="btn btn-xs btn-link pull-right" style="color:#3399ff;" data-keepOpenOnClick>No leídas</button>' . 
+                                                    '<label style="font-size:12px;padding-top:1px;" class="pull-right">Marcar todas como</label>' .
+                                                '</div>';
+        		}else{
+                    $params["headerTemplate"] = '<div class="notifications-header" style="margin-bottom:1%">'.
+                                                    '<div class="col-xs-12">' . 
+                                                        '<button id="{verNotificacionesId}" class="btn btn-xs btn-primary" style="margin-right:1%;" data-keepOpenOnClick>
+                                                            &nbsp <span id="contador-notificaciones" class="badge notifications-icon-count">0</span>Notificaciones
+                                                        </button>' . 
+                                                        '<button id="{verAlertasId}" class="btn btn-xs btn-danger" data-keepOpenOnClick>
+                                                            &nbsp <span id="contador-alertas" class="badge notifications-icon-count">0</span>Alertas  
+                                                        </button>' .                
+                                                    '</div>'.
+                                                '</div>';
+                }
         }
         
         if($this->headerTitle){
@@ -257,7 +278,7 @@ class NotificationsWidget extends Widget
         }
         
         $js = 'var notificationSystem = Notifications(' . Json::encode($params,JSON_PRETTY_PRINT) . ');
-notificationSystem.poll(0);';
+notificationSystem.pollSection(1,0);';
         $view->registerJs($js);
     }
 }

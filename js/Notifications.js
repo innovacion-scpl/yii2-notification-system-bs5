@@ -1,5 +1,8 @@
 var Notifications = (function(options) {
 	
+	const SECCION_NOTIF = 1;
+	const SECCION_ALERTAS = 2;
+
 	this.currentNotifications = [];
 	this.currentTimer = null;
 	
@@ -66,13 +69,7 @@ var Notifications = (function(options) {
         viewUnreadSelector: null,
         headerSelector: null,
         headerTitle: null,
-        headerTemplate: 
-        		'<div class="col-xs-12">' + 
-				'<div class="pull-left" style="font-size:14px;font-weight:bold;margin-left:10px;">{title}</div>' + 
-				'<button id="{readAllId}" class="btn btn-xs btn-link pull-right" style="color:#3399ff;" data-keepOpenOnClick>Read</button>' + 
-				'<button id="{unreadAllId}" class="btn btn-xs btn-link pull-right" style="color:#3399ff;" data-keepOpenOnClick>Unread</button>' + 
-				'<label style="font-size:12px;padding-top:1px;" class="pull-right">Mark All as </label>' +
-			'</div>',
+        headerTemplate: null,
         listSelector: null,
         listItemTemplate:
             '<div class="notificationRow" id="notification_{id}" data-keepOpenOnClick>' +
@@ -98,16 +95,20 @@ var Notifications = (function(options) {
         }
     }, options);
     
-    this.poll = function(all=0){
+	this.pollSection = function(seccion, all=0){
 		$.ajax({
-			url: this.opts.pollUrl,
+			url: this.opts.pollSectionUrl,
 			method: "GET",
-			data: {all:all},
+			data: {
+				claves: ((seccion == 1) ? JSON.stringify(this.opts.clavesSeccionNotificaciones) : JSON.stringify(this.opts.clavesSeccionAlertas)),
+				seccion: seccion, 
+				all:all, 
+			},
 			dataType: "json",
         		complete: function(){
         			if(self.opts.pollInterval != false){
         				self.currentTimer = setTimeout(function() {
-                			self.poll(all,1)
+                			self.pollSection(seccion,all)
             			}, self.opts.pollInterval);
         			}
         		},
@@ -119,6 +120,29 @@ var Notifications = (function(options) {
 			processNotifications();
 		});
     }
+    
+
+    // this.poll = function(seccion=SECCION_NOTIF, all=0){
+	// 	$.ajax({
+	// 		url: this.opts.pollUrl,
+	// 		method: "GET",
+	// 		data: {seccion: seccion, all:all},
+	// 		dataType: "json",
+    //     		complete: function(){
+    //     			if(self.opts.pollInterval != false){
+    //     				self.currentTimer = setTimeout(function() {
+    //             			self.poll(all,1)
+    //         			}, self.opts.pollInterval);
+    //     			}
+    //     		},
+    //     		timeout: self.opts.xhrTimeout
+    //     	})
+	// 	.done(function(data, textStatus, jqXHR){
+	// 		var notifications = jqXHR.responseJSON;
+	// 		currentNotifications = notifications;
+	// 		processNotifications();
+	// 	});
+    // }
     
     this.processNotifications = function(){
     		var rows = "";
@@ -149,6 +173,7 @@ var Notifications = (function(options) {
 	    	// Update all counters
         for (var i = 0; i < opts.counters.length; i++) {
             if ($(opts.counters[i]).text() != unreadCount) {
+				console.log(unreadCount)
                 $(opts.counters[i]).text(unreadCount);
             }
         }
@@ -253,15 +278,16 @@ var Notifications = (function(options) {
     		});
     }
 
-	this.verNotifPorTipo = function(tipo){
+	this.verNotifPorTipo = function(seccion=this.SECCION_NOTIF){
 		$.ajax({
-			url: ((tipo==0) ? this.opts.verNotificacionesUrl : this.opts.verAlertasUrl),
+			url: this.opts.pollSectionUrl,
 			dataType: "json"
 		})
 		.done(function(data, textStatus, jqXHR){
 			var notifications = jqXHR.responseJSON;
 			currentNotifications = notifications;
-			processNotifications();
+			// processNotifications();
+			pollSection(seccion);
 		});
 	}
     
@@ -347,13 +373,15 @@ var Notifications = (function(options) {
 
 		if(self.opts.viewNotificacionesSelector != null && self.opts.viewNotificacionesSelector != ""){
 			$('body').on('click', self.opts.viewNotificacionesSelector, function(){
-				verNotifPorTipo(0);
+				clearTimeout(self.currentTimer);
+				pollSection(1);
 			});
 		}
 
 		if(self.opts.viewAlertasSelector != null && self.opts.viewAlertasSelector != ""){
 			$('body').on('click', self.opts.viewAlertasSelector, function(){
-				verNotifPorTipo(1);
+				clearTimeout(self.currentTimer);
+				pollSection(2)
 			});
 		}
 		
