@@ -43,7 +43,17 @@ class NotificationsWidget extends Widget
      * @var string The URL for the controller action that marks all notifications as unread
      */
 	public $unreadAllUrl = '/notifications/notifications/unread-all';
+
+    /**
+     * @var string URL de la acción del controlador que obtiene el listado de notificaciones
+     */
+	public $verNotificacionesUrl = '/notifications/notifications/ver-notificaciones';
 	
+	/**
+     * @var string URL de la acción del controlador que obtiene el listado de alertas
+     */
+	public $verAlertasUrl = '/notifications/notifications/ver-alertas';
+
 	/**
      * @var array additional options to be passed to the notification library.
      * Please refer to the plugin project page for available options.
@@ -102,6 +112,16 @@ class NotificationsWidget extends Widget
      * @var string The jQuery selector for the View Unread button
      */
     public $viewUnreadSelector = null;
+
+    /**
+     * @var string The jQuery selector for the Notificaciones button
+     */
+    public $viewNotificacionesSelector = null;
+    
+    /**
+     * @var string The jQuery selector for the Alertas button
+     */
+    public $viewAlertasSelector = null;
     
     /**
      * @var string The jQuery selector for the Notifications header view
@@ -185,6 +205,8 @@ class NotificationsWidget extends Widget
 		$params['flashUrl'] = $this->flashUrl;
 		$params['readAllUrl'] = $this->readAllUrl;
 		$params['unreadAllUrl'] = $this->unreadAllUrl;
+        $params['verNotificacionesUrl'] = $this->verNotificacionesUrl;
+        $params['verAlertasUrl'] = $this->verAlertasUrl;
 		
 //         if ($this->theme) {
 //             $params['theme'] = Html::encode($this->theme);
@@ -213,6 +235,14 @@ class NotificationsWidget extends Widget
         
         if($this->viewUnreadSelector){
         		$params["viewUnreadSelector"] = $this->viewUnreadSelector;
+        }
+
+        if($this->viewAlertasSelector){
+            $params["viewAlertasSelector"] = $this->viewAlertasSelector;
+        }
+
+        if($this->viewNotificacionesSelector){
+            $params["viewNotificacionesSelector"] = $this->viewNotificacionesSelector;
         }
         
         if($this->headerSelector){

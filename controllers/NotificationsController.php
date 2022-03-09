@@ -8,7 +8,7 @@ use yii\web\Controller;
 use yii\web\HttpException;
 use yii\web\Response;
 use cbtech\notification_system\models\Notification;
-
+use common\models\Notificacion;
 
 class NotificationsController extends Controller
 {
@@ -139,6 +139,31 @@ class NotificationsController extends Controller
         $notification->save();
         return $notification;
     }
+
+
+    /** Retorna el listado de notificaciones  */
+    public function actionVerNotificaciones()
+    {
+        $modelos = Notificacion::find()
+                            ->where(['key' => 'nota_cerrada'])
+                            ->andWhere(['read' => 0]) 
+                            ->andWhere(['user_id' => $this->user_id])
+                            ->all();
+        return $this->convertModelsToArray($modelos);
+    }
+
+    /** Retorna el listado de alertas  */
+    public function actionVerAlertas()
+    {
+        $modelos = Notificacion::find()
+                            ->where(['key' => 'nota_recibida'])
+                            ->andWhere(['read' => 0]) 
+                            ->andWhere(['user_id' => $this->user_id])
+                            ->all();
+        return $this->convertModelsToArray($modelos);
+    }
+
+
     /**
      * Gets a notification by id
      *

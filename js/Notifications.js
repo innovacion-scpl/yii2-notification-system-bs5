@@ -252,6 +252,18 @@ var Notifications = (function(options) {
     			processNotifications();
     		});
     }
+
+	this.verNotifPorTipo = function(tipo){
+		$.ajax({
+			url: ((tipo==0) ? this.opts.verNotificacionesUrl : this.opts.verAlertasUrl),
+			dataType: "json"
+		})
+		.done(function(data, textStatus, jqXHR){
+			var notifications = jqXHR.responseJSON;
+			currentNotifications = notifications;
+			processNotifications();
+		});
+	}
     
     this.flash = function(notification){
         	$.ajax({
@@ -283,7 +295,8 @@ var Notifications = (function(options) {
     		html = html.replace(/\{title}/g, self.opts.headerTitle);
     		html = html.replace(/\{readAllId}/g, self.opts.markAllReadSelector.substr(1));
     		html = html.replace(/\{unreadAllId}/g, self.opts.markAllUnreadSelector.substr(1));
-    		
+    		html = html.replace(/\{verNotificacionesId}/g, self.opts.viewNotificacionesSelector.substr(1));
+			html = html.replace(/\{verAlertasId}/g, self.opts.viewAlertasSelector.substr(1));
     		return html;
     }
     
@@ -329,6 +342,18 @@ var Notifications = (function(options) {
 //					$(self.opts.markAllReadSelector).show();
 //					$(self.opts.markAllUnreadSelector).hide();
 //				}
+			});
+		}
+
+		if(self.opts.viewNotificacionesSelector != null && self.opts.viewNotificacionesSelector != ""){
+			$('body').on('click', self.opts.viewNotificacionesSelector, function(){
+				verNotifPorTipo(0);
+			});
+		}
+
+		if(self.opts.viewAlertasSelector != null && self.opts.viewAlertasSelector != ""){
+			$('body').on('click', self.opts.viewAlertasSelector, function(){
+				verNotifPorTipo(1);
 			});
 		}
 		
