@@ -263,10 +263,10 @@ class NotificationsWidget extends Widget
                     $params["headerTemplate"] = '<div class="notifications-header" style="margin-bottom:1%">'.
                                                     '<div class="col-xs-12">' . 
                                                         '<button id="{verNotificacionesId}" class="btn btn-xs btn-primary" style="margin-right:1%;" data-keepOpenOnClick>
-                                                            &nbsp <span id="contador-notificaciones" class="badge notifications-icon-count">0</span>Notificaciones
+                                                            <span id="{verNotificacionesId}-contador" class="badge">0</span> Notificaciones
                                                         </button>' . 
                                                         '<button id="{verAlertasId}" class="btn btn-xs btn-danger" data-keepOpenOnClick>
-                                                            &nbsp <span id="contador-alertas" class="badge notifications-icon-count">0</span>Alertas  
+                                                            <span id="{verAlertasId}-contador" class="badge">0</span> Alertas  
                                                         </button>' .                
                                                     '</div>'.
                                                 '</div>';

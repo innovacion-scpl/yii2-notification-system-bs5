@@ -4,7 +4,9 @@ var Notifications = (function(options) {
 	const SECCION_ALERTAS = 2;
 
 	this.currentNotifications = [];
+	this.notificacionesTotales = [];
 	this.currentTimer = null;
+	this.totalNoLeidas = 0;
 	
 //		function notify(){ //This syntax makes the function callable only from within the class.
 	this.notify = function(notification){ //This syntax makes the function callable by the object (this)
@@ -115,9 +117,13 @@ var Notifications = (function(options) {
         		timeout: self.opts.xhrTimeout
         	})
 		.done(function(data, textStatus, jqXHR){
-			var notifications = jqXHR.responseJSON;
+			var response = jqXHR.responseJSON;
+			// console.log(response.notificacionesSeccion)
+			var notifications = response.notificacionesSeccion;
+			totalNoLeidas = response.totalNoLeidas;
 			currentNotifications = notifications;
-			processNotifications();
+			notificacionesTotales = response.notificacionesTotales;
+			processNotifications(seccion);
 		});
     }
     
@@ -144,19 +150,37 @@ var Notifications = (function(options) {
 	// 	});
     // }
     
-    this.processNotifications = function(){
-    		var rows = "";
+    this.processNotifications = function(seccion=null){
+		var rows = "";
 		
-		updateCounters();
-		
-		for(i in currentNotifications){
-			var notification = currentNotifications[i];
-			if(notification.flashed == 0){
-				notify(notification);
+		if(seccion == null) {
+			updateCounters();
+			
+			for(i in currentNotifications){
+				var notification = currentNotifications[i];
+				if(notification.flashed == 0){
+					notify(notification);
+				}
+				rows += renderRow(notification);
 			}
-			rows += renderRow(notification);
+		}else{
+			this.actualizarContadoresSecciones(seccion)
+			var claves = ((seccion == 1) ? JSON.stringify(this.opts.clavesSeccionNotificaciones) : JSON.stringify(this.opts.clavesSeccionAlertas))
+
+			for(i in this.notificacionesTotales){
+				var notification = this.notificacionesTotales[i];
+
+				if(notification.flashed == 0){
+					notify(notification);
+				}
+				if(claves.indexOf(notification.key) !== -1)
+				{
+					rows += renderRow(notification);
+				}
+			}
+			// console.log(this.opts.clavesSeccionNotificaciones)
+
 		}
-		
 		if(opts.listSelector != null && opts.listSelector != ""){
 			$(opts.listSelector).empty().append(rows);
 			//Initialize bootstrap tooltips
@@ -167,16 +191,34 @@ var Notifications = (function(options) {
 			}
 		}
     }
+
+
+	this.actualizarContadoresSecciones = function(seccion){
+		var unreadCount = countUnread();
+		if(seccion == 1)
+		{
+			$(this.opts.viewNotificacionesSelector+'-contador').text(unreadCount)
+			$(this.opts.viewAlertasSelector + '-contador').text(this.totalNoLeidas - unreadCount)
+		}else{
+			$(this.opts.viewAlertasSelector+'-contador').text(unreadCount)
+			$(this.opts.viewNotificacionesSelector + '-contador').text(this.totalNoLeidas - unreadCount)
+		}
+		// Update all counters
+		for (var i = 0; i < opts.counters.length; i++) {
+			if ($(opts.counters[i]).text() != this.totalNoLeidas) {
+				$(opts.counters[i]).text(this.totalNoLeidas);
+			}
+		}
+	}
     
-    this.updateCounters = function(){
-	    	var unreadCount = countUnread();
-	    	// Update all counters
-        for (var i = 0; i < opts.counters.length; i++) {
-            if ($(opts.counters[i]).text() != unreadCount) {
-				console.log(unreadCount)
-                $(opts.counters[i]).text(unreadCount);
-            }
-        }
+    this.updateCounters = function(seccion){
+		var unreadCount = countUnread();
+		// Update all counters
+		for (var i = 0; i < opts.counters.length; i++) {
+			if ($(opts.counters[i]).text() != unreadCount) {
+				$(opts.counters[i]).text(unreadCount);
+			}
+		}
     }
     
     this.countUnread = function(){
@@ -207,7 +249,6 @@ var Notifications = (function(options) {
     }
     
     this.markAsRead = function(id){
-    		console.log(id);
     		$.ajax({
     			url: this.opts.markAsReadUrl,
     			method: "GET",
@@ -228,7 +269,6 @@ var Notifications = (function(options) {
     }
     
     this.markAsUnread = function(id){
-        	console.log(id);
     		$.ajax({
     			url: this.opts.markAsUnreadUrl,
     			method: "GET",

@@ -46,39 +46,55 @@ class NotificationsController extends Controller
     {
         /** @var Notification $class */
         $class = $this->notificationClass;
-        $models = $class::find()->where(['user_id' => $this->user_id]);
         $claves = Json::decode($claves);
-        $models->andWhere(['or', ["read"=>0], ['flashed'=>0]])
-                ->andWhere(['IN', 'key', array_values($claves)]);
+
+        $notifSeccion = $class::find()
+                                ->where(['user_id' => $this->user_id])
+                                ->andWhere(['or', ["read"=>0], ['flashed'=>0]])
+                                ->andWhere(['IN', 'key', array_values($claves)])
+                                ->orderBy('read, created_at DESC')
+                                ->all(); //OPTIMIZAR --> traer todas y filtrar 
+
+        $notifTodas = $class::find()
+                            ->where(['user_id' => $this->user_id])
+                            ->andWhere(['or', ["read"=>0], ['flashed'=>0]])
+                            ->all();
+
+        $totalNoLeidas = $class::find()->where(['user_id' => $this->user_id])
+                                ->andWhere(['read' => 0])
+                                ->count();
+
+        $arrayNotifSeccion = $this->convertModelsToArray($notifSeccion);
+        $arrayNotifTotales = $this->convertModelsToArray($notifTodas);
+        return [
+            'notificacionesSeccion' => $arrayNotifSeccion,
+            'notificacionesTotales' => $arrayNotifTotales,
+            'totalNoLeidas' => $totalNoLeidas,
+        ];
+    }
+
+    public function actionPoll($all = 0)
+    {
+//     		\Yii::error($this->notificationClass);
+//         $read = $read ? 1 : 0;
+//         \Yii::error($read);
+        /** @var Notification $class */
+        $class = $this->notificationClass;
+        $models = $class::find()->where(['user_id' => $this->user_id]);
+		if($all == 0){
+        	$models->andWhere(['or', ["read"=>0], ['flashed'=>0]]);			
+		}else{
+			$models->andWhere(['or', ["read"=>0],["read"=>1], ['flashed'=>0]]);	
+		}
 		$models = $models->orderBy('read, created_at DESC')
 						 ->all();
 		
         $results = $this->convertModelsToArray($models);
+//         \Yii::error(print_r($models,true));
+        
+//         \Yii::error(print_r($results,true));
         return $results;
     }
-
-//     public function actionPoll($all = 0)
-//     {
-// //     		\Yii::error($this->notificationClass);
-// //         $read = $read ? 1 : 0;
-// //         \Yii::error($read);
-//         /** @var Notification $class */
-//         $class = $this->notificationClass;
-//         $models = $class::find()->where(['user_id' => $this->user_id]);
-// 		if($all == 0){
-//         	$models->andWhere(['or', ["read"=>0], ['flashed'=>0]]);			
-// 		}else{
-// 			$models->andWhere(['or', ["read"=>0],["read"=>1], ['flashed'=>0]]);	
-// 		}
-// 		$models = $models->orderBy('read, created_at DESC')
-// 						 ->all();
-		
-//         $results = $this->convertModelsToArray($models);
-// //         \Yii::error(print_r($models,true));
-        
-// //         \Yii::error(print_r($results,true));
-//         return $results;
-//     }
     /**
      * Marks a notification as read and redirects the user to the final route
      *
