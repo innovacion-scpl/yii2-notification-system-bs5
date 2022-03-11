@@ -7,6 +7,7 @@ var Notifications = (function(options) {
 	this.notificacionesTotales = [];
 	this.currentTimer = null;
 	this.totalNoLeidas = 0;
+	this.seccion_activa = SECCION_NOTIF;
 	
 //		function notify(){ //This syntax makes the function callable only from within the class.
 	this.notify = function(notification){ //This syntax makes the function callable by the object (this)
@@ -97,7 +98,7 @@ var Notifications = (function(options) {
         }
     }, options);
     
-	this.pollSection = function(seccion, all=0){
+	this.pollSection = function(seccion=seccion_activa, all=0){
 		$.ajax({
 			url: this.opts.pollSectionUrl,
 			method: "GET",
@@ -118,7 +119,6 @@ var Notifications = (function(options) {
         	})
 		.done(function(data, textStatus, jqXHR){
 			var response = jqXHR.responseJSON;
-			// console.log(response.notificacionesSeccion)
 			var notifications = response.notificacionesSeccion;
 			totalNoLeidas = response.totalNoLeidas;
 			currentNotifications = notifications;
@@ -166,20 +166,18 @@ var Notifications = (function(options) {
 		}else{
 			this.actualizarContadoresSecciones(seccion)
 			var claves = ((seccion == 1) ? JSON.stringify(this.opts.clavesSeccionNotificaciones) : JSON.stringify(this.opts.clavesSeccionAlertas))
-
+			var deshabilitarAcciones = ((seccion == 2) ? true : false)
 			for(i in this.notificacionesTotales){
 				var notification = this.notificacionesTotales[i];
 
 				if(notification.flashed == 0){
 					notify(notification);
 				}
-				if(claves.indexOf(notification.key) !== -1)
-				{
-					rows += renderRow(notification);
-				}
 			}
-			// console.log(this.opts.clavesSeccionNotificaciones)
-
+			for(i in this.currentNotifications){
+				notification = this.currentNotifications[i];
+				rows += renderRow(notification, deshabilitarAcciones)
+			}
 		}
 		if(opts.listSelector != null && opts.listSelector != ""){
 			$(opts.listSelector).empty().append(rows);
@@ -195,18 +193,19 @@ var Notifications = (function(options) {
 
 	this.actualizarContadoresSecciones = function(seccion){
 		var unreadCount = countUnread();
-		if(seccion == 1)
+
+		if(seccion_activa == SECCION_NOTIF)
 		{
 			$(this.opts.viewNotificacionesSelector+'-contador').text(unreadCount)
-			$(this.opts.viewAlertasSelector + '-contador').text(this.totalNoLeidas - unreadCount)
+			$(this.opts.viewAlertasSelector + '-contador').text(totalNoLeidas - unreadCount)
 		}else{
 			$(this.opts.viewAlertasSelector+'-contador').text(unreadCount)
-			$(this.opts.viewNotificacionesSelector + '-contador').text(this.totalNoLeidas - unreadCount)
+			$(this.opts.viewNotificacionesSelector + '-contador').text(totalNoLeidas - unreadCount)
 		}
 		// Update all counters
 		for (var i = 0; i < opts.counters.length; i++) {
-			if ($(opts.counters[i]).text() != this.totalNoLeidas) {
-				$(opts.counters[i]).text(this.totalNoLeidas);
+			if ($(opts.counters[i]).text() != totalNoLeidas) {
+				$(opts.counters[i]).text(totalNoLeidas);
 			}
 		}
 	}
@@ -249,23 +248,34 @@ var Notifications = (function(options) {
     }
     
     this.markAsRead = function(id){
-    		$.ajax({
-    			url: this.opts.markAsReadUrl,
-    			method: "GET",
-    			data: {id:id},
-    			dataType: "json"
-    		})
-    		.done(function(data, textStatus, jqXHR){
-    			if($("#notification_read_"+id).length){
-    				$("#notification_read_"+id).hide();
-    				$("#notification_unread_"+id).show();
-    			}
-//	    			//Remove the notification from the currentNotifications array.
-    			var index = getNotificationIndex(id);
-    			currentNotifications[index].read = 1;
-//	    			currentNotifications.splice(index,1);
-    			updateCounters();
-    		});
+		$.ajax({
+			url: this.opts.markAsReadUrl,
+			method: "POST",
+			data: {id:id},
+			dataType: "json"
+		})
+		.done(function(data, textStatus, jqXHR){
+			if($("#notification_read_"+id).length){
+				$("#notification_read_"+id).hide();
+				$("#notification_unread_"+id).show();
+			}
+
+			if(self.opts.dividirEnSecciones)
+			{
+				if(seccion_activa == SECCION_NOTIF){
+					//Remove the notification from the currentNotifications array.
+					var index = getNotificationIndex(id);
+					currentNotifications[index].read = 1;
+					totalNoLeidas -= 1;
+				}
+				actualizarContadoresSecciones(seccion_activa)
+			}else{
+				//Remove the notification from the currentNotifications array.
+				var index = getNotificationIndex(id);
+				currentNotifications[index].read = 1;
+				updateCounters()
+			}
+		});
     }
     
     this.markAsUnread = function(id){
@@ -318,18 +328,18 @@ var Notifications = (function(options) {
     		});
     }
 
-	this.verNotifPorTipo = function(seccion=this.SECCION_NOTIF){
-		$.ajax({
-			url: this.opts.pollSectionUrl,
-			dataType: "json"
-		})
-		.done(function(data, textStatus, jqXHR){
-			var notifications = jqXHR.responseJSON;
-			currentNotifications = notifications;
-			// processNotifications();
-			pollSection(seccion);
-		});
-	}
+	// this.verNotifPorTipo = function(seccion=this.SECCION_NOTIF){
+	// 	$.ajax({
+	// 		url: this.opts.pollSectionUrl,
+	// 		dataType: "json"
+	// 	})
+	// 	.done(function(data, textStatus, jqXHR){
+	// 		var notifications = jqXHR.responseJSON;
+	// 		currentNotifications = notifications;
+	// 		// processNotifications();
+	// 		pollSection(seccion);
+	// 	});
+	// }
     
     this.flash = function(notification){
         	$.ajax({
@@ -351,7 +361,7 @@ var Notifications = (function(options) {
         	if(notification.url != null && notification.url != ""){
         		window.location = notification.url;
         	}
-        	markAsRead(id);
+			markAsRead(id);
     }
     
     this.renderHeader = function(headerSelector){
@@ -366,7 +376,7 @@ var Notifications = (function(options) {
     		return html;
     }
     
-    this.renderRow = function(notification){
+    this.renderRow = function(notification, deshabilitarAcciones = false){
     		var html = "";
     		
     		html += self.opts.listItemTemplate; 
@@ -375,13 +385,19 @@ var Notifications = (function(options) {
     		html = html.replace(/\{body}/g, notification.body);
     		html = html.replace(/\{url}/g, notification.url);
     		html = html.replace(/\{footer}/g, notification.footer);
-    		if(notification.read == 1){
-    			html = html.replace(/\{read}/g, '<button id="notification_read_'+ notification.id + '" style="display:none;" onclick="markAsRead(' + notification.id + ');" class="notification-read" data-toggle="tooltip" data-placement="bottom" data-container="body" title="Mark as read" data-keepOpenOnClick></button>');
-        		html = html.replace(/\{unread}/g, '<button id="notification_unread_'+ notification.id + '" onclick="markAsUnread(' + notification.id + ');" class="notification-unread" data-toggle="tooltip" data-placement="bottom" data-container="body" title="Mark as unread" data-keepOpenOnClick></button>');
-    		}else{
-    			html = html.replace(/\{read}/g, '<button id="notification_read_'+ notification.id + '" onclick="markAsRead(' + notification.id + ');" class="notification-read" data-toggle="tooltip" data-placement="bottom" data-container="body" title="Mark as read" data-keepOpenOnClick></button>');
-        		html = html.replace(/\{unread}/g, '<button id="notification_unread_'+ notification.id + '" style="display:none;" onclick="markAsUnread(' + notification.id + ');" class="notification-unread" data-toggle="tooltip" data-placement="bottom" data-container="body" title="Mark as unread" data-keepOpenOnClick></button>');
-    		}
+			if(!deshabilitarAcciones)
+			{
+				if(notification.read == 1){
+					html = html.replace(/\{read}/g, '<button id="notification_read_'+ notification.id + '" style="display:none;" onclick="markAsRead(' + notification.id + ');" class="notification-read" data-toggle="tooltip" data-placement="bottom" data-container="body" title="Mark as read" data-keepOpenOnClick></button>');
+					html = html.replace(/\{unread}/g, '<button id="notification_unread_'+ notification.id + '" onclick="markAsUnread(' + notification.id + ');" class="notification-unread" data-toggle="tooltip" data-placement="bottom" data-container="body" title="Mark as unread" data-keepOpenOnClick></button>');
+				}else{
+					html = html.replace(/\{read}/g, '<button id="notification_read_'+ notification.id + '" onclick="markAsRead(' + notification.id + ');" class="notification-read" data-toggle="tooltip" data-placement="bottom" data-container="body" title="Mark as read" data-keepOpenOnClick></button>');
+					html = html.replace(/\{unread}/g, '<button id="notification_unread_'+ notification.id + '" style="display:none;" onclick="markAsUnread(' + notification.id + ');" class="notification-unread" data-toggle="tooltip" data-placement="bottom" data-container="body" title="Mark as unread" data-keepOpenOnClick></button>');
+				}
+			}else{
+				html = html.replace(/\{read}/g, '');
+				html = html.replace(/\{unread}/g, '');
+			}
     		
     		html = html.replace(/\{timeago}/g, '<span class="notification-timeago">' + $.timeago(notification.date) +'</span>');
         
@@ -414,14 +430,16 @@ var Notifications = (function(options) {
 		if(self.opts.viewNotificacionesSelector != null && self.opts.viewNotificacionesSelector != ""){
 			$('body').on('click', self.opts.viewNotificacionesSelector, function(){
 				clearTimeout(self.currentTimer);
-				pollSection(1);
+				seccion_activa = SECCION_NOTIF
+				pollSection(seccion_activa);
 			});
 		}
 
 		if(self.opts.viewAlertasSelector != null && self.opts.viewAlertasSelector != ""){
 			$('body').on('click', self.opts.viewAlertasSelector, function(){
 				clearTimeout(self.currentTimer);
-				pollSection(2)
+				seccion_activa = SECCION_ALERTAS
+				pollSection(seccion_activa)
 			});
 		}
 		

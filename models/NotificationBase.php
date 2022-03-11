@@ -89,7 +89,14 @@ abstract class NotificationBase extends \yii\db\ActiveRecord
      * @return string
      */
     abstract public function getRoute();
+    /**
+     * Determina si la notificación es una alerta.
+     *
+     * @return boolean
+     */
+    abstract public function esAlerta();
 
+    
     /**
      * Default notification
      */

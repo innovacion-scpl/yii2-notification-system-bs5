@@ -36,6 +36,17 @@ class NotificationsController extends Controller
         $this->notificationClass = $this->module->notificationClass;
         parent::init();
     }
+
+    private function totalNoLeidas($user_id)
+    {
+        $class = $this->notificationClass;
+        $totalNoLeidas = $class::find()->where(['user_id' => $user_id])
+                                ->andWhere(['read' => 0])
+                                ->count();
+        return $totalNoLeidas;
+    }
+
+
     /**
      * Poll action
      *
@@ -45,8 +56,8 @@ class NotificationsController extends Controller
     public function actionPollSection($claves, $section=1, $all = 0)
     {
         /** @var Notification $class */
-        $class = $this->notificationClass;
         $claves = Json::decode($claves);
+        $class = $this->notificationClass;
 
         $notifSeccion = $class::find()
                                 ->where(['user_id' => $this->user_id])
@@ -58,18 +69,17 @@ class NotificationsController extends Controller
         $notifTodas = $class::find()
                             ->where(['user_id' => $this->user_id])
                             ->andWhere(['or', ["read"=>0], ['flashed'=>0]])
+                            ->orderBy('read, created_at DESC')
                             ->all();
 
-        $totalNoLeidas = $class::find()->where(['user_id' => $this->user_id])
-                                ->andWhere(['read' => 0])
-                                ->count();
+
 
         $arrayNotifSeccion = $this->convertModelsToArray($notifSeccion);
         $arrayNotifTotales = $this->convertModelsToArray($notifTodas);
         return [
             'notificacionesSeccion' => $arrayNotifSeccion,
             'notificacionesTotales' => $arrayNotifTotales,
-            'totalNoLeidas' => $totalNoLeidas,
+            'totalNoLeidas' => $this->totalNoLeidas($this->user_id),
         ];
     }
 
@@ -116,11 +126,16 @@ class NotificationsController extends Controller
      * @throws HttpException Throws an exception if the notification is not
      *         found, or if it don't belongs to the logged in user
      */
-    public function actionRead($id)
+    public function actionRead()
     {
+        $id = Yii::$app->request->post('id');
         $notification = $this->getNotification($id);
-        $notification->read = 1;
-        $notification->save();
+
+        if(!$notification->esAlerta())
+        {
+            $notification->read = 1;
+            $notification->save();
+        }
         return $notification;
     }
     /**
