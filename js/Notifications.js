@@ -128,27 +128,28 @@ var Notifications = (function(options) {
     }
     
 
-    // this.poll = function(seccion=SECCION_NOTIF, all=0){
-	// 	$.ajax({
-	// 		url: this.opts.pollUrl,
-	// 		method: "GET",
-	// 		data: {seccion: seccion, all:all},
-	// 		dataType: "json",
-    //     		complete: function(){
-    //     			if(self.opts.pollInterval != false){
-    //     				self.currentTimer = setTimeout(function() {
-    //             			self.poll(all,1)
-    //         			}, self.opts.pollInterval);
-    //     			}
-    //     		},
-    //     		timeout: self.opts.xhrTimeout
-    //     	})
-	// 	.done(function(data, textStatus, jqXHR){
-	// 		var notifications = jqXHR.responseJSON;
-	// 		currentNotifications = notifications;
-	// 		processNotifications();
-	// 	});
-    // }
+    this.poll = function(all=0){
+		$.ajax({
+			url: this.opts.pollUrl,
+			method: "GET",
+			data: {all:all},
+			dataType: "json",
+        		complete: function(){
+        			if(self.opts.pollInterval != false){
+        				self.currentTimer = setTimeout(function() {
+                			self.poll(all,1)
+            			}, self.opts.pollInterval);
+        			}
+        		},
+        		timeout: self.opts.xhrTimeout
+        	})
+		.done(function(data, textStatus, jqXHR){
+			var notifications = jqXHR.responseJSON;
+			currentNotifications = notifications;
+			notificacionesTotales = currentNotifications;
+			processNotifications();
+		});
+    }
     
     this.processNotifications = function(seccion=null){
 		var rows = "";
@@ -232,8 +233,8 @@ var Notifications = (function(options) {
     }
     
     this.getNotificationIndex = function(id){
-	    	for(i in currentNotifications){
-	    		if(currentNotifications[i].id == id){
+	    	for(i in notificacionesTotales){
+	    		if(notificacionesTotales[i].id == id){
 	    			return i;
 	    		}
 	    	}
@@ -251,7 +252,7 @@ var Notifications = (function(options) {
 		$.ajax({
 			url: this.opts.markAsReadUrl,
 			method: "POST",
-			data: {id:id},
+			data: {id:id, clavesAlerta: JSON.stringify(this.opts.clavesSeccionAlertas)},
 			dataType: "json"
 		})
 		.done(function(data, textStatus, jqXHR){
@@ -265,7 +266,7 @@ var Notifications = (function(options) {
 				if(seccion_activa == SECCION_NOTIF){
 					//Remove the notification from the currentNotifications array.
 					var index = getNotificationIndex(id);
-					currentNotifications[index].read = 1;
+					notificacionesTotales[index].read = 1;
 					totalNoLeidas -= 1;
 				}
 				actualizarContadoresSecciones(seccion_activa)
@@ -327,19 +328,6 @@ var Notifications = (function(options) {
     			processNotifications();
     		});
     }
-
-	// this.verNotifPorTipo = function(seccion=this.SECCION_NOTIF){
-	// 	$.ajax({
-	// 		url: this.opts.pollSectionUrl,
-	// 		dataType: "json"
-	// 	})
-	// 	.done(function(data, textStatus, jqXHR){
-	// 		var notifications = jqXHR.responseJSON;
-	// 		currentNotifications = notifications;
-	// 		// processNotifications();
-	// 		pollSection(seccion);
-	// 	});
-	// }
     
     this.flash = function(notification){
         	$.ajax({
@@ -351,13 +339,13 @@ var Notifications = (function(options) {
     		.done(function(data, textStatus, jqXHR){
     			//Update reference in currentNotifications array.
     			var index = getNotificationIndex(notification.id);
-    			currentNotifications[index].flashed = 1;
+    			notificacionesTotales[index].flashed = 1;
     		});
     }
     
     this.goToRoute = function(id){
         	var index = getNotificationIndex(id);
-        	var notification = currentNotifications[index];
+        	var notification = notificacionesTotales[index];
         	if(notification.url != null && notification.url != ""){
         		window.location = notification.url;
         	}
