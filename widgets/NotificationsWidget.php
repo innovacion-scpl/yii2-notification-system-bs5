@@ -254,10 +254,11 @@ class NotificationsWidget extends Widget
         		$params["headerSelector"] = $this->headerSelector;
         		if(!$this->dividirEnSecciones){
         			$params["headerTemplate"] = '<div class="col-xs-12">'. 
-                                                    '<div class="pull-left" style="font-size:14px;font-weight:bold;margin-left:10px;">{title}</div>' . 
-                                                    '<button id="{readAllId}" class="btn btn-xs btn-link pull-right" style="color:#3399ff;" data-keepOpenOnClick>Leídas</button>' . 
-                                                    '<button id="{unreadAllId}" class="btn btn-xs btn-link pull-right" style="color:#3399ff;" data-keepOpenOnClick>No leídas</button>' . 
-                                                    '<label style="font-size:12px;padding-top:1px;" class="pull-right">Marcar todas como</label>' .
+                                                    '<div class="float-start" style="font-size:14px;font-weight:bold;">{title}</div>' . 
+                                                    '<label style="font-size:12px" class="float-start">Marcar todas como</label>' .
+                                                    '<button id="{readAllId}" class="btn btn-sm btn-link " style="color:#3399ff;" data-keepOpenOnClick>Leídas</button>' . 
+                                                    '<button id="{unreadAllId}" class="btn btn-sm btn-link" style="color:#3399ff;" data-keepOpenOnClick>No leídas</button>' . 
+                                                    
                                                 '</div>';
         		}else{
                     $params["headerTemplate"] = '<div class="notifications-header" style="margin-bottom:1%">'.
@@ -269,7 +270,7 @@ class NotificationsWidget extends Widget
                                                             <span id="{verAlertasId}-contador" class="badge">0</span> Alertas  
                                                         </button>' .                
                                                     '</div>'.
-                                                '</div>';
+                                                '</div>'; 
                 }
         }
         
@@ -278,7 +279,7 @@ class NotificationsWidget extends Widget
         }
         
         $js = 'var notificationSystem = Notifications(' . Json::encode($params,JSON_PRETTY_PRINT) . ');
-notificationSystem.pollSection(1,0);';
+                notificationSystem.pollSection(1,0);';
         $view->registerJs($js);
     }
 }

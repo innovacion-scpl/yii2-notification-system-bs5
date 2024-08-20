@@ -23,7 +23,7 @@ class NotificationAsset extends AssetBundle
     public $depends = [
         'yii\web\JqueryAsset',
     		'cbtech\notification_system\assets\ToastrAsset',
-    		'yii\bootstrap\BootstrapPluginAsset',
+    		'yii\bootstrap5\BootstrapPluginAsset',
     		'cbtech\notification_system\assets\TimeagoAsset'
     ];
     public $publishOptions = [
