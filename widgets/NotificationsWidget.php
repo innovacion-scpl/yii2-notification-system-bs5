@@ -253,24 +253,23 @@ class NotificationsWidget extends Widget
         if($this->headerSelector){
         		$params["headerSelector"] = $this->headerSelector;
         		if(!$this->dividirEnSecciones){
-        			$params["headerTemplate"] = '<div class="col-xs-12">'. 
-                                                    '<div class="float-start" style="font-size:14px;font-weight:bold;">{title}</div>' . 
-                                                    '<label style="font-size:12px" class="float-start">Marcar todas como</label>' .
-                                                    '<button id="{readAllId}" class="btn btn-sm btn-link " style="color:#3399ff;" data-keepOpenOnClick>Leídas</button>' . 
-                                                    '<button id="{unreadAllId}" class="btn btn-sm btn-link" style="color:#3399ff;" data-keepOpenOnClick>No leídas</button>' . 
-                                                    
+        			$params["headerTemplate"] = '<div class="col-xs-12">'.  
+                                                    '<div class="float-start m-1" style="font-size:14px; font-weight:bold;">{title}</div>' . 
+                                                    '<label style="font-size:12px;" class="">Marcar todas como</label>' .
+                                                    '<button id="{readAllId}" class="btn btn-sm btn-link " style="color:#3399ff; font-size:12px" data-keepOpenOnClick> Leídas </button>' . 
+                                                    '<button id="{unreadAllId}" class="btn btn-sm btn-link " style="color:#3399ff;font-size:12px" data-keepOpenOnClick> No leídas </button>' . 
                                                 '</div>';
         		}else{
                     $params["headerTemplate"] = '<div class="notifications-header" style="margin-bottom:1%">'.
                                                     '<div class="col-xs-12">' . 
                                                         '<button id="{verNotificacionesId}" class="btn btn-xs btn-primary" style="margin-right:1%;" data-keepOpenOnClick>
-                                                            <span id="{verNotificacionesId}-contador" class="badge">0</span> Notificaciones
+                                                            <span id="{verNotificacionesId}-contador" class="badge">0</span> Notif icaciones
                                                         </button>' . 
                                                         '<button id="{verAlertasId}" class="btn btn-xs btn-danger" data-keepOpenOnClick>
                                                             <span id="{verAlertasId}-contador" class="badge">0</span> Alertas  
                                                         </button>' .                
                                                     '</div>'.
-                                                '</div>'; 
+                                                '</div>';
                 }
         }
         

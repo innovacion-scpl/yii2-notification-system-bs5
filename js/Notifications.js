@@ -162,8 +162,9 @@ var Notifications = (function(options) {
 				if(notification.flashed == 0){
 					notify(notification);
 				}
-				rows += renderRow(notification);
+				rows +=renderRow(notification);
 			}
+			
 		}else{
 			this.actualizarContadoresSecciones(seccion)
 			var claves = ((seccion == 1) ? JSON.stringify(this.opts.clavesSeccionNotificaciones) : JSON.stringify(this.opts.clavesSeccionAlertas))
@@ -366,8 +367,9 @@ var Notifications = (function(options) {
     
     this.renderRow = function(notification, deshabilitarAcciones = false){
     		var html = "";
-    		
-    		html += self.opts.listItemTemplate; 
+    		html +='<li class="dropdown-item p-0">';
+    		html += self.opts.listItemTemplate; 		
+			
     		html = html.replace(/\{id}/g, notification.id);
     		html = html.replace(/\{title}/g, notification.title);
     		html = html.replace(/\{body}/g, notification.body);
@@ -377,10 +379,10 @@ var Notifications = (function(options) {
 			{
 				if(notification.read == 1){
 					html = html.replace(/\{read}/g, '<button id="notification_read_'+ notification.id + '" style="display:none;" onclick="markAsRead(' + notification.id + ');" class="notification-read" data-toggle="tooltip" data-placement="bottom" data-container="body" title="Marcar como leído" data-keepOpenOnClick></button>');
-					html = html.replace(/\{unread}/g, '<button id="notification_unread_'+ notification.id + '" onclick="markAsUnread(' + notification.id + ');" class="notification-unread" data-toggle="tooltip" data-placement="bottom" data-container="body" title="Marcar como no leído" data-keepOpenOnClick></button>');
+					html = html.replace(/\{unread}/g, '<button id="notification_unread_'+ notification.id + '" onclick="markAsUnread(' + notification.id + ');" class="notification-unread" data-toggle="tooltip" data-placement="bottom" data-container="body" title="Marcar como no leída" data-keepOpenOnClick></button>');
 				}else{
 					html = html.replace(/\{read}/g, '<button id="notification_read_'+ notification.id + '" onclick="markAsRead(' + notification.id + ');" class="notification-read" data-toggle="tooltip" data-placement="bottom" data-container="body" title="Marcar como leído" data-keepOpenOnClick></button>');
-					html = html.replace(/\{unread}/g, '<button id="notification_unread_'+ notification.id + '" style="display:none;" onclick="markAsUnread(' + notification.id + ');" class="notification-unread" data-toggle="tooltip" data-placement="bottom" data-container="body" title="Marcar como no leído" data-keepOpenOnClick></button>');
+					html = html.replace(/\{unread}/g, '<button id="notification_unread_'+ notification.id + '" style="display:none;" onclick="markAsUnread(' + notification.id + ');" class="notification-unread" data-toggle="tooltip" data-placement="bottom" data-container="body" title="Marcar como no leída" data-keepOpenOnClick></button>');
 				}
 			}else{
 				html = html.replace(/\{read}/g, '');
@@ -388,7 +390,8 @@ var Notifications = (function(options) {
 			}
     		
     		html = html.replace(/\{timeago}/g, '<span class="notification-timeago">' + $.timeago(notification.date) +'</span>');
-        
+			// html+='<hr>';
+			html +='</li>';					
         return html;
     }
     
