@@ -1,15 +1,117 @@
-.notification-read{
-	width:14px;
-	height:14px;
-	border-radius:7px;
-	border:1px #3399ff solid;
-	background-color: #3399ff;
+/* Contador sobre la campana (Bootstrap 5): se ancla a la campana y no al <li> del menú,
+   que en BS5 también incluye la flecha del dropdown. */
+.nav-link .notifications-icon-count{
+	position: relative;
+	top: -8px;
+	right: auto;
+	margin-left: -8px;
+	padding: 2px 5px;
+	font-size: 10px;
+	line-height: 1;
+	border-radius: 10px;
+	color: #fff;
+	background-color: crimson;
 }
 
+/* Sin flecha de dropdown en la campana */
+.notifications-toggle.dropdown-toggle::after{
+	display: none;
+}
+
+/* Fila de notificación: contenido a la izquierda, punto de leída/no leída a la derecha */
+.notificationRow{
+	display: flex;
+	align-items: flex-start;
+	gap: 10px;
+	padding: 10px 14px;
+	border-bottom: 1px solid #e9ecef;
+	transition: background-color .15s;
+}
+
+.notificationRow:hover{
+	background-color: #f8f9fa;
+}
+
+.notificationRow.is-unread{
+	background-color: #eef5ff;
+}
+
+.notificationRow.is-unread:hover{
+	background-color: #e3eefc;
+}
+
+.notification-content{
+	flex: 1 1 auto;
+	min-width: 0;
+	cursor: pointer;
+}
+
+.notification-title{
+	font-size: 13px;
+	font-weight: 600;
+	color: #212529;
+	line-height: 1.3;
+}
+
+.notification-body,
+.notification-footer{
+	font-size: 12px;
+	color: #6c757d;
+	line-height: 1.35;
+	margin-top: 2px;
+	overflow-wrap: anywhere;
+}
+
+.notification-footer:empty{
+	display: none;
+}
+
+.notification-meta{
+	font-size: 11px;
+	color: #adb5bd;
+	margin-top: 4px;
+}
+
+.notification-actions{
+	flex: 0 0 auto;
+	padding-top: 2px;
+}
+
+/* Botón de 18px de área de clic con un punto de 10px dibujado en ::before */
+.notification-read,
 .notification-unread{
-	width:14px;
-	height:14px;
-	border-radius:7px;
-	border: 1px #3399ff solid;
-	background-color: white;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 18px;
+	height: 18px;
+	padding: 0;
+	border: 0;
+	background: transparent;
+	cursor: pointer;
+}
+
+.notification-read::before,
+.notification-unread::before{
+	content: "";
+	width: 10px;
+	height: 10px;
+	border-radius: 50%;
+	transition: transform .15s;
+}
+
+/* No leída: punto azul (clic para marcar como leída) */
+.notification-read::before{
+	background-color: #0d6efd;
+}
+
+/* Leída: aro gris (clic para marcar como no leída) */
+.notification-unread::before{
+	background-color: #fff;
+	border: 1.5px solid #adb5bd;
+}
+
+.notification-read:hover::before,
+.notification-unread:hover::before{
+	transform: scale(1.25);
 }

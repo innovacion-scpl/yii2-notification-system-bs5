@@ -74,30 +74,26 @@ var Notifications = (function(options) {
         headerTitle: null,
         headerTemplate: null,
         listSelector: null,
+        pageSize: 10, // Cantidad de notificaciones que se agregan en cada scroll
         listItemTemplate:
-            '<div class="notificationRow" id="notification_{id}" data-keepOpenOnClick>' +
-                '<div class="col-xs-11" onclick="goToRoute(\'{id}\');" style="cursor:pointer;">' +
+            '<div class="notificationRow {readClass}" id="notification_{id}" data-keepOpenOnClick>' +
+                '<div class="notification-content" onclick="goToRoute(\'{id}\');">' +
                     '<div class="notification-title">{title}</div>' +
                     '<div class="notification-body">{body}</div>' +
-                '</div>' +
-                '<div class="col-xs-1">' +
-                    '<div class="notification-actions pull-right">{read}{unread}</div>' +
-                '</div>' +
-                '<div class="clearfix"></div>' + 
-                '<div class="col-xs-1">' +
-        				'<div class="notification-timeago">{timeago}</div>' +
-        			'</div>' +
-                '<div class="col-xs-10">' +
                     '<div class="notification-footer">{footer}</div>' +
+                    '<div class="notification-meta">Hace {timeago}</div>' +
                 '</div>' +
-                '<div class="clearfix"></div>' + 
-//                    '<hr/>' +
+                '<div class="notification-actions">{read}{unread}</div>' +
             '</div>',
         listItemBeforeRender: function (elem) {
             return elem;
         }
     }, options);
-    
+
+	// Cantidad de notificaciones dibujadas en la lista (crece con el scroll)
+	this.visibleCount = this.opts.pageSize;
+	this.deshabilitarAccionesLista = false;
+
 	this.pollSection = function(seccion=seccion_activa, all=0){
 		$.ajax({
 			url: this.opts.pollSectionUrl,
@@ -152,23 +148,20 @@ var Notifications = (function(options) {
     }
     
     this.processNotifications = function(seccion=null){
-		var rows = "";
-		
+		var deshabilitarAcciones = false;
+
 		if(seccion == null) {
 			updateCounters();
-			
+
 			for(i in currentNotifications){
 				var notification = currentNotifications[i];
 				if(notification.flashed == 0){
 					notify(notification);
 				}
-				rows +=renderRow(notification);
 			}
-			
 		}else{
 			this.actualizarContadoresSecciones(seccion)
-			var claves = ((seccion == 1) ? JSON.stringify(this.opts.clavesSeccionNotificaciones) : JSON.stringify(this.opts.clavesSeccionAlertas))
-			var deshabilitarAcciones = ((seccion == 2) ? true : false)
+			deshabilitarAcciones = ((seccion == 2) ? true : false)
 			for(i in this.notificacionesTotales){
 				var notification = this.notificacionesTotales[i];
 
@@ -176,21 +169,67 @@ var Notifications = (function(options) {
 					notify(notification);
 				}
 			}
-			for(i in this.currentNotifications){
-				notification = this.currentNotifications[i];
-				rows += renderRow(notification, deshabilitarAcciones)
-			}
 		}
-		if(opts.listSelector != null && opts.listSelector != ""){
-			$(opts.listSelector).empty().append(rows);
-			//Initialize bootstrap tooltips
-			for(i in currentNotifications){
-				var notification = currentNotifications[i];
-				$('#notification_read_'+ notification.id).tooltip();
-				$('#notification_unread_'+ notification.id).tooltip();
-			}
-		}
+		renderList(deshabilitarAcciones);
     }
+
+	/** Contenedor con scroll de la lista (el <ul class="scroll"> del layout, o el padre de la lista) */
+	this.getScrollContainer = function(){
+		var $list = $(opts.listSelector);
+		var $scroll = $list.closest('.scroll');
+		return $scroll.length ? $scroll : $list.parent();
+	}
+
+	/** Dibuja las primeras visibleCount notificaciones manteniendo la posición del scroll */
+	this.renderList = function(deshabilitarAcciones){
+		if(opts.listSelector == null || opts.listSelector == ""){
+			return;
+		}
+		deshabilitarAccionesLista = deshabilitarAcciones;
+
+		var $list = $(opts.listSelector);
+		var $scroll = getScrollContainer();
+		var scrollTop = $scroll.scrollTop();
+		var visibles = $.makeArray(currentNotifications).slice(0, visibleCount);
+		var rows = "";
+		for(var j = 0; j < visibles.length; j++){
+			rows += renderRow(visibles[j], deshabilitarAcciones);
+		}
+
+		$list.find('[data-bs-toggle="tooltip"]').tooltip('dispose');
+		$list.empty().append(rows);
+		initTooltips(visibles);
+		$scroll.scrollTop(scrollTop);
+	}
+
+	/** Agrega la siguiente página de notificaciones al final de la lista */
+	this.renderNextPage = function(){
+		var todas = $.makeArray(currentNotifications);
+		if(visibleCount >= todas.length){
+			return;
+		}
+		var siguientes = todas.slice(visibleCount, visibleCount + opts.pageSize);
+		var rows = "";
+		for(var j = 0; j < siguientes.length; j++){
+			rows += renderRow(siguientes[j], deshabilitarAccionesLista);
+		}
+		visibleCount += opts.pageSize;
+		$(opts.listSelector).append(rows);
+		initTooltips(siguientes);
+	}
+
+	this.initTooltips = function(notifications){
+		for(var j = 0; j < notifications.length; j++){
+			$('#notification_read_'+ notifications[j].id).tooltip();
+			$('#notification_unread_'+ notifications[j].id).tooltip();
+		}
+	}
+
+	/** Vuelve la lista a la primera página (al cambiar de sección) */
+	this.resetPagination = function(){
+		visibleCount = opts.pageSize;
+		getScrollContainer().scrollTop(0);
+	}
 
 
 	this.actualizarContadoresSecciones = function(seccion){
@@ -257,28 +296,47 @@ var Notifications = (function(options) {
 			dataType: "json"
 		})
 		.done(function(data, textStatus, jqXHR){
+			// El servidor no marca como leídas las alertas: si sigue sin leer no se toca nada
+			if(data == null || data.read != 1){
+				return;
+			}
 			if($("#notification_read_"+id).length){
 				$("#notification_read_"+id).hide();
 				$("#notification_unread_"+id).show();
 			}
+			$("#notification_"+id).removeClass('is-unread');
 
+			// Se actualiza la notificación en las dos listas para que los contadores coincidan
+			var estabaNoLeida = setNotificationRead(id, 1);
 			if(self.opts.dividirEnSecciones)
 			{
-				if(seccion_activa == SECCION_NOTIF){
-					//Remove the notification from the currentNotifications array.
-					var index = getNotificationIndex(id);
-					notificacionesTotales[index].read = 1;
+				if(estabaNoLeida){
 					totalNoLeidas -= 1;
 				}
 				actualizarContadoresSecciones(seccion_activa)
 			}else{
-				//Remove the notification from the currentNotifications array.
-				var index = getNotificationIndex(id);
-				currentNotifications[index].read = 1;
 				updateCounters()
 			}
 		});
     }
+
+	/**
+	 * Cambia el estado de lectura de una notificación en currentNotifications y notificacionesTotales.
+	 * Devuelve true si el estado cambió en alguna de las dos listas.
+	 */
+	this.setNotificationRead = function(id, read){
+		var cambio = false;
+		var listas = [currentNotifications, notificacionesTotales];
+		for(var l = 0; l < listas.length; l++){
+			for(var k in listas[l]){
+				if(listas[l][k].id == id && listas[l][k].read != read){
+					listas[l][k].read = read;
+					cambio = true;
+				}
+			}
+		}
+		return cambio;
+	}
     
     this.markAsUnread = function(id){
     		$.ajax({
@@ -292,11 +350,16 @@ var Notifications = (function(options) {
     				$("#notification_read_"+id).show();
     				$("#notification_unread_"+id).hide();
     			}
-//	    			//Remove the notification from the currentNotifications array.
-    			var index = getNotificationIndex(id);
-    			currentNotifications[index].read = 0;
-//	    			currentNotifications.splice(index,1);
-    			updateCounters();
+    			$("#notification_"+id).addClass('is-unread');
+    			var estabaLeida = setNotificationRead(id, 0);
+    			if(self.opts.dividirEnSecciones){
+    				if(estabaLeida){
+    					totalNoLeidas += 1;
+    				}
+    				actualizarContadoresSecciones(seccion_activa);
+    			}else{
+    				updateCounters();
+    			}
     		});
     }
     
@@ -367,22 +430,22 @@ var Notifications = (function(options) {
     
     this.renderRow = function(notification, deshabilitarAcciones = false){
     		var html = "";
-    		html +='<li class="dropdown-item p-0">';
-    		html += self.opts.listItemTemplate; 		
-			
+    		
+    		html += self.opts.listItemTemplate; 
     		html = html.replace(/\{id}/g, notification.id);
     		html = html.replace(/\{title}/g, notification.title);
     		html = html.replace(/\{body}/g, notification.body);
     		html = html.replace(/\{url}/g, notification.url);
     		html = html.replace(/\{footer}/g, notification.footer);
+    		html = html.replace(/\{readClass}/g, (notification.read == 0) ? 'is-unread' : '');
 			if(!deshabilitarAcciones)
 			{
 				if(notification.read == 1){
-					html = html.replace(/\{read}/g, '<button id="notification_read_'+ notification.id + '" style="display:none;" onclick="markAsRead(' + notification.id + ');" class="notification-read" data-toggle="tooltip" data-placement="bottom" data-container="body" title="Marcar como leído" data-keepOpenOnClick></button>');
-					html = html.replace(/\{unread}/g, '<button id="notification_unread_'+ notification.id + '" onclick="markAsUnread(' + notification.id + ');" class="notification-unread" data-toggle="tooltip" data-placement="bottom" data-container="body" title="Marcar como no leída" data-keepOpenOnClick></button>');
+					html = html.replace(/\{read}/g, '<button id="notification_read_'+ notification.id + '" style="display:none;" onclick="markAsRead(' + notification.id + ');" class="notification-read" data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-container="body" title="Marcar como leída" data-keepOpenOnClick></button>');
+					html = html.replace(/\{unread}/g, '<button id="notification_unread_'+ notification.id + '" onclick="markAsUnread(' + notification.id + ');" class="notification-unread" data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-container="body" title="Marcar como no leída" data-keepOpenOnClick></button>');
 				}else{
-					html = html.replace(/\{read}/g, '<button id="notification_read_'+ notification.id + '" onclick="markAsRead(' + notification.id + ');" class="notification-read" data-toggle="tooltip" data-placement="bottom" data-container="body" title="Marcar como leído" data-keepOpenOnClick></button>');
-					html = html.replace(/\{unread}/g, '<button id="notification_unread_'+ notification.id + '" style="display:none;" onclick="markAsUnread(' + notification.id + ');" class="notification-unread" data-toggle="tooltip" data-placement="bottom" data-container="body" title="Marcar como no leída" data-keepOpenOnClick></button>');
+					html = html.replace(/\{read}/g, '<button id="notification_read_'+ notification.id + '" onclick="markAsRead(' + notification.id + ');" class="notification-read" data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-container="body" title="Marcar como leída" data-keepOpenOnClick></button>');
+					html = html.replace(/\{unread}/g, '<button id="notification_unread_'+ notification.id + '" style="display:none;" onclick="markAsUnread(' + notification.id + ');" class="notification-unread" data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-container="body" title="Marcar como no leída" data-keepOpenOnClick></button>');
 				}
 			}else{
 				html = html.replace(/\{read}/g, '');
@@ -390,8 +453,7 @@ var Notifications = (function(options) {
 			}
     		
     		html = html.replace(/\{timeago}/g, '<span class="notification-timeago">' + $.timeago(notification.date) +'</span>');
-			// html+='<hr>';
-			html +='</li>';					
+        
         return html;
     }
     
@@ -422,6 +484,7 @@ var Notifications = (function(options) {
 			$('body').on('click', self.opts.viewNotificacionesSelector, function(){
 				clearTimeout(self.currentTimer);
 				seccion_activa = SECCION_NOTIF
+				resetPagination();
 				pollSection(seccion_activa);
 			});
 		}
@@ -430,6 +493,7 @@ var Notifications = (function(options) {
 			$('body').on('click', self.opts.viewAlertasSelector, function(){
 				clearTimeout(self.currentTimer);
 				seccion_activa = SECCION_ALERTAS
+				resetPagination();
 				pollSection(seccion_activa)
 			});
 		}
@@ -450,8 +514,14 @@ var Notifications = (function(options) {
 //        notify();
     
     $(document).ready(function(){
-    		$(document).delegate("[data-keepOpenOnClick]", "click", function(e) {
-    			e.stopPropagation();
+    		// Bootstrap 5: el dropdown se cierra con clics internos (autoClose). Se cancela el cierre
+    		// cuando el clic viene de un elemento marcado con data-keepOpenOnClick.
+    		var $dropdown = $(opts.listSelector).closest('.dropdown');
+    		$dropdown.find('[data-bs-toggle="dropdown"]').addClass('notifications-toggle');
+    		$dropdown.on('hide.bs.dropdown', function(e) {
+    			if (e.clickEvent && $(e.clickEvent.target).closest('[data-keepOpenOnClick]').length) {
+    				e.preventDefault();
+    			}
     		});
 		
     		if(opts.headerSelector != null && opts.headerSelector != ""){
@@ -460,6 +530,13 @@ var Notifications = (function(options) {
     		}
     		
     		initializeSelectors();
+
+    		// Scroll infinito: al acercarse al final de la lista se agregan más notificaciones
+    		getScrollContainer().on('scroll', function(){
+    			if(this.scrollTop + this.clientHeight >= this.scrollHeight - 40){
+    				renderNextPage();
+    			}
+    		});
     });
     
     return this;
